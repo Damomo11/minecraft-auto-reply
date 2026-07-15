@@ -21,7 +21,10 @@ public final class DamomoAutoReplyConfig {
             rule.name = rule.name == null ? "" : rule.name;
             rule.matchMode = rule.matchMode == null ? RuleMatchMode.MESSAGE : rule.matchMode;
             rule.regex = rule.regex == null ? "" : rule.regex;
-            rule.reply = rule.reply == null ? "" : rule.reply;
+            if (rule.replies == null) {
+                rule.replies = new ArrayList<>();
+            }
+            rule.replies.removeIf(reply -> reply == null);
         }
     }
 }

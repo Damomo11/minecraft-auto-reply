@@ -12,11 +12,14 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 
 public final class AutoReplyEngine {
     private static final Logger LOGGER = LoggerFactory.getLogger("damomo-auto-reply/engine");
     private static final long MIN_TRIGGER_INTERVAL_MS = 300L;
+    private static final int MULTI_REPLY_GAP_MS = 350;
     private static long lastTriggerAt;
 
     private AutoReplyEngine() {
@@ -50,25 +53,20 @@ public final class AutoReplyEngine {
             return;
         }
 
-        String plainText = message.getString();
         var buttonCommands = allowButtonEvents ? ButtonCommandExtractor.extract(message) : java.util.List.<String>of();
+        if (!buttonCommands.isEmpty() && triggerFirstButtonRule(client, buttonCommands, now)) {
+            return;
+        }
+
+        String plainText = message.getString();
         for (ReplyRule rule : ConfigManager.get().rules) {
-            if (!rule.enabled || !rule.isValid()) {
+            if (!rule.enabled || !rule.isValid() || rule.matchMode != RuleMatchMode.MESSAGE) {
                 continue;
             }
             try {
-                if (rule.matchMode == RuleMatchMode.BUTTON_COMMAND) {
-                    for (String command : buttonCommands) {
-                        Matcher matcher = rule.pattern().matcher(command);
-                        if (matcher.find() && trigger(client, rule, matcher, now)) {
-                            return;
-                        }
-                    }
-                } else {
-                    Matcher matcher = rule.pattern().matcher(plainText);
-                    if (matcher.find() && trigger(client, rule, matcher, now)) {
-                        return;
-                    }
+                Matcher matcher = rule.pattern().matcher(plainText);
+                if (matcher.find() && triggerRule(client, rule, matcher, now)) {
+                    return;
                 }
             } catch (IllegalArgumentException exception) {
                 LOGGER.warn("Skipped invalid reply rule {}: {}", rule.id, exception.getMessage());
@@ -76,13 +74,41 @@ public final class AutoReplyEngine {
         }
     }
 
-    private static boolean trigger(Minecraft client, ReplyRule rule, Matcher matcher, long now) {
-        String reply = ReplyTemplate.expand(rule.reply, matcher).strip();
-        if (reply.isEmpty()) {
+    private static boolean triggerFirstButtonRule(Minecraft client, List<String> commands, long now) {
+        for (ReplyRule rule : ConfigManager.get().rules) {
+            if (!rule.enabled || !rule.isValid() || rule.matchMode != RuleMatchMode.BUTTON_COMMAND) {
+                continue;
+            }
+            try {
+                for (String command : commands) {
+                    Matcher matcher = rule.pattern().matcher(command);
+                    if (matcher.find() && triggerRule(client, rule, matcher, now)) {
+                        return true;
+                    }
+                }
+            } catch (IllegalArgumentException exception) {
+                LOGGER.warn("Skipped invalid button reply rule {}: {}", rule.id, exception.getMessage());
+            }
+        }
+        return false;
+    }
+
+    private static boolean triggerRule(Minecraft client, ReplyRule rule, Matcher matcher, long now) {
+        List<String> expandedReplies = new ArrayList<>();
+        for (String template : rule.replies) {
+            String reply = ReplyTemplate.expand(template, matcher).strip();
+            if (!reply.isEmpty()) {
+                expandedReplies.add(truncate(reply, 256));
+            }
+        }
+        if (expandedReplies.isEmpty()) {
             return false;
         }
         lastTriggerAt = now;
-        scheduleReply(client, rule.id, truncate(reply, 256), ConfigManager.get().replyDelayMs);
+        for (int index = 0; index < expandedReplies.size(); index++) {
+            scheduleReply(client, rule.id, expandedReplies.get(index),
+                    ConfigManager.get().replyDelayMs + index * MULTI_REPLY_GAP_MS);
+        }
         return true;
     }
 

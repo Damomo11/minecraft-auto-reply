@@ -25,7 +25,7 @@ public final class RuleEditScreen extends Screen {
     private final boolean isNew;
     private EditBox nameField;
     private EditBox regexField;
-    private EditBox replyField;
+    private Button repliesButton;
     private EditBox testField;
     private Button modeButton;
     private Button enabledButton;
@@ -51,7 +51,10 @@ public final class RuleEditScreen extends Screen {
 
         nameField = createField(fieldX, 41, fieldWidth, 64, "damomo_auto_reply.edit.name.hint", working.name);
         regexField = createField(fieldX, 74, fieldWidth, 512, "damomo_auto_reply.edit.regex.hint", working.regex);
-        replyField = createField(fieldX, 107, fieldWidth, 256, "damomo_auto_reply.edit.reply.hint", working.reply);
+        repliesButton = addRenderableWidget(Button.builder(Component.empty(), button ->
+                minecraft.setScreen(new ReplyMessagesScreen(this, working.replies)))
+                .bounds(fieldX, 107, fieldWidth, 20).build());
+        updateRepliesButton();
 
         int toggleWidth = 100;
         modeButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
@@ -73,10 +76,6 @@ public final class RuleEditScreen extends Screen {
         });
         regexField.setResponder(value -> {
             working.regex = value;
-            validate();
-        });
-        replyField.setResponder(value -> {
-            working.reply = value;
             validate();
         });
         testField.setResponder(value -> validate());
@@ -114,6 +113,11 @@ public final class RuleEditScreen extends Screen {
                         ? "damomo_auto_reply.rule.toggle.enabled" : "damomo_auto_reply.rule.toggle.disabled")));
     }
 
+    private void updateRepliesButton() {
+        long count = working.replies.stream().filter(reply -> reply != null && !reply.isBlank()).count();
+        repliesButton.setMessage(Component.translatable("damomo_auto_reply.edit.replies.button", count));
+    }
+
     private void updateModeButton() {
         boolean buttonMode = working.matchMode == RuleMatchMode.BUTTON_COMMAND;
         modeButton.setMessage(Component.translatable(buttonMode
@@ -129,7 +133,8 @@ public final class RuleEditScreen extends Screen {
     }
 
     private void validate() {
-        boolean baseValid = !working.regex.isBlank() && !working.reply.isBlank();
+        boolean baseValid = !working.regex.isBlank()
+                && working.replies.stream().anyMatch(reply -> reply != null && !reply.isBlank());
         try {
             var pattern = working.pattern();
             saveButton.active = baseValid;
@@ -145,8 +150,12 @@ public final class RuleEditScreen extends Screen {
                 testResultColor = ERROR;
                 return;
             }
-            String preview = ReplyTemplate.expand(working.reply, matcher);
-            testResult = Component.translatable("damomo_auto_reply.edit.test.match", preview);
+            var previews = working.replies.stream()
+                    .filter(reply -> reply != null && !reply.isBlank())
+                    .map(reply -> ReplyTemplate.expand(reply, matcher))
+                    .toList();
+            testResult = Component.translatable("damomo_auto_reply.edit.test.match.multiple",
+                    previews.size(), String.join(" → ", previews));
             testResultColor = ACCENT;
         } catch (PatternSyntaxException exception) {
             saveButton.active = false;
@@ -167,8 +176,6 @@ public final class RuleEditScreen extends Screen {
     private void save() {
         working.name = nameField.getValue().strip();
         working.regex = regexField.getValue();
-        working.reply = replyField.getValue();
-
         if (isNew) {
             ConfigManager.get().rules.add(new ReplyRule(working));
         } else {
@@ -209,7 +216,7 @@ public final class RuleEditScreen extends Screen {
         graphics.drawString(font, Component.translatable("damomo_auto_reply.edit.name"), labelX, 30, 0xFFE7ECEF, false);
         graphics.drawString(font, Component.translatable(working.matchMode == RuleMatchMode.BUTTON_COMMAND
                 ? "damomo_auto_reply.edit.regex.button" : "damomo_auto_reply.edit.regex"), labelX, 63, 0xFFE7ECEF, false);
-        graphics.drawString(font, Component.translatable("damomo_auto_reply.edit.reply"), labelX, 96, 0xFFE7ECEF, false);
+        graphics.drawString(font, Component.translatable("damomo_auto_reply.edit.replies"), labelX, 96, 0xFFE7ECEF, false);
         String help = Component.translatable(working.matchMode == RuleMatchMode.BUTTON_COMMAND
                 ? "damomo_auto_reply.edit.help.button" : "damomo_auto_reply.edit.help").getString();
         graphics.drawString(font, trim(help, panelWidth - 28), labelX, 130, MUTED, false);

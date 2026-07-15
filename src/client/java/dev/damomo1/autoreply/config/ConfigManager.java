@@ -2,6 +2,10 @@ package dev.damomo1.autoreply.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import net.fabricmc.loader.api.FabricLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,17 +40,50 @@ public final class ConfigManager {
         }
 
         try (Reader reader = Files.newBufferedReader(sourcePath)) {
-            DamomoAutoReplyConfig loaded = GSON.fromJson(reader, DamomoAutoReplyConfig.class);
+            JsonElement rootElement = JsonParser.parseReader(reader);
+            boolean migratedReplies = migrateLegacyReplies(rootElement);
+            DamomoAutoReplyConfig loaded = GSON.fromJson(rootElement, DamomoAutoReplyConfig.class);
             config = loaded == null ? new DamomoAutoReplyConfig() : loaded;
             config.normalize();
             if (sourcePath.equals(LEGACY_CONFIG_PATH)) {
                 LOGGER.info("Migrating legacy configuration from {} to {}", LEGACY_CONFIG_PATH, CONFIG_PATH);
+            } else if (migratedReplies) {
+                LOGGER.info("Migrating {} to the multi-message reply format", CONFIG_PATH);
+            }
+            if (sourcePath.equals(LEGACY_CONFIG_PATH) || migratedReplies) {
                 save();
             }
         } catch (Exception exception) {
             LOGGER.error("Could not load {}, keeping a fresh configuration", sourcePath, exception);
             config = new DamomoAutoReplyConfig();
         }
+    }
+
+    private static boolean migrateLegacyReplies(JsonElement rootElement) {
+        if (!rootElement.isJsonObject()) {
+            return false;
+        }
+        JsonObject root = rootElement.getAsJsonObject();
+        JsonArray rules = root.has("rules") && root.get("rules").isJsonArray()
+                ? root.getAsJsonArray("rules") : null;
+        if (rules == null) {
+            return false;
+        }
+        boolean migrated = false;
+        for (JsonElement element : rules) {
+            if (!element.isJsonObject()) {
+                continue;
+            }
+            JsonObject rule = element.getAsJsonObject();
+            if (!rule.has("replies") && rule.has("reply") && rule.get("reply").isJsonPrimitive()) {
+                JsonArray replies = new JsonArray();
+                replies.add(rule.get("reply").getAsString());
+                rule.add("replies", replies);
+                migrated = true;
+            }
+            migrated |= rule.remove("reply") != null;
+        }
+        return migrated;
     }
 
     public static void save() {

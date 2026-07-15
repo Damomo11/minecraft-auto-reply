@@ -166,7 +166,10 @@ public final class RulesScreen extends Screen {
             String regexSummary = "[" + mode + "] " + (rule.regex.isBlank() ? "—" : rule.regex);
             graphics.drawString(font, trim(regexSummary, textWidth), textX, y + 27,
                     0xFF91C9BA, false);
-            String arrowReply = "→ " + (rule.reply.isBlank() ? "—" : rule.reply);
+            var nonEmptyReplies = rule.replies.stream().filter(reply -> reply != null && !reply.isBlank()).toList();
+            String replyPreview = nonEmptyReplies.isEmpty() ? "—" : nonEmptyReplies.getFirst();
+            String replyCount = nonEmptyReplies.size() > 1 ? " (×" + nonEmptyReplies.size() + ")" : "";
+            String arrowReply = "→ " + replyPreview + replyCount;
             graphics.drawString(font, trim(arrowReply, textWidth), textX, y + 44, MUTED, false);
 
             int deleteX = x + w - 118;
