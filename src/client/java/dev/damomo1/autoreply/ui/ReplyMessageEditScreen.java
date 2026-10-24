@@ -1,7 +1,7 @@
 package dev.damomo1.autoreply.ui;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -46,24 +46,24 @@ final class ReplyMessageEditScreen extends Screen {
 
     private void save() {
         parent.saveMessage(index, messageField.getValue());
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float partialTick) {
         int panelWidth = Math.min(540, width - 36);
         int panelX = (width - panelWidth) / 2;
-        graphics.fill(panelX, 34, panelX + panelWidth, Math.max(35, height - 37), 0xB8141B22);
-        super.render(graphics, mouseX, mouseY, delta);
-        graphics.drawCenteredString(font, title.copy().withStyle(ChatFormatting.BOLD), width / 2, 14, 0xFFFFFFFF);
-        graphics.drawString(font, Component.translatable("damomo_auto_reply.edit.reply"), panelX + 14, 62,
+        extractor.fill(panelX, 34, panelX + panelWidth, Math.max(35, height - 37), 0xB8141B22);
+        super.extractRenderState(extractor, mouseX, mouseY, partialTick);
+        extractor.centeredText(font, title.copy().withStyle(ChatFormatting.BOLD), width / 2, 14, 0xFFFFFFFF);
+        extractor.text(font, Component.translatable("damomo_auto_reply.edit.reply"), panelX + 14, 62,
                 0xFFE7ECEF, false);
-        graphics.drawString(font, Component.translatable("damomo_auto_reply.replies.capture_help"), panelX + 14, 103,
+        extractor.text(font, Component.translatable("damomo_auto_reply.replies.capture_help"), panelX + 14, 103,
                 MUTED, false);
     }
 }

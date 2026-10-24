@@ -1,6 +1,6 @@
 # Damomo Auto Reply
 
-适用于 Minecraft 1.21.11 的 Fabric 客户端自动回复 Mod。
+适用于 Minecraft 26.2 的 Fabric 客户端自动回复 Mod。
 
 ## 功能
 
@@ -67,17 +67,17 @@
 
 ## 构建
 
-需要 Java 21 或更高版本：
+需要 Java 25 或更高版本：
 
 ```powershell
 .\gradlew.bat build
 ```
 
-输出文件位于 `build/libs/damomo-auto-reply-1.2.1.jar`。
+输出文件位于 `build/libs/damomo-auto-reply-1.3.0.jar`。
 
 ## 运行依赖
 
-- Minecraft 1.21.11
-- Fabric Loader 0.18.4 或更高版本
-- Fabric API 0.141.4+1.21.11
-- Mod Menu 17.0.0
+- Minecraft 26.2
+- Fabric Loader 0.19.5 或更高版本
+- Fabric API 0.161.0+26.2
+- Mod Menu 20.0.3

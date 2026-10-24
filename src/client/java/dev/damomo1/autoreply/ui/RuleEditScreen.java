@@ -5,7 +5,7 @@ import dev.damomo1.autoreply.config.ConfigManager;
 import dev.damomo1.autoreply.config.ReplyRule;
 import dev.damomo1.autoreply.config.RuleMatchMode;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ConfirmScreen;
@@ -52,7 +52,7 @@ public final class RuleEditScreen extends Screen {
         nameField = createField(fieldX, 41, fieldWidth, 64, "damomo_auto_reply.edit.name.hint", working.name);
         regexField = createField(fieldX, 74, fieldWidth, 512, "damomo_auto_reply.edit.regex.hint", working.regex);
         repliesButton = addRenderableWidget(Button.builder(Component.empty(), button ->
-                minecraft.setScreen(new ReplyMessagesScreen(this, working.replies)))
+                minecraft.gui.setScreen(new ReplyMessagesScreen(this, working.replies)))
                 .bounds(fieldX, 107, fieldWidth, 20).build());
         updateRepliesButton();
 
@@ -188,42 +188,42 @@ public final class RuleEditScreen extends Screen {
         }
         ConfigManager.save();
         parent.refreshRules();
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 
     private void confirmDelete() {
         String displayName = working.name.isBlank() ? working.regex : working.name;
-        minecraft.setScreen(new ConfirmScreen(confirmed -> {
+        minecraft.gui.setScreen(new ConfirmScreen(confirmed -> {
             if (confirmed) {
                 ConfigManager.get().rules.removeIf(rule -> rule.id.equals(working.id));
                 ConfigManager.save();
                 parent.refreshRules();
-                minecraft.setScreen(parent);
+                minecraft.gui.setScreen(parent);
             } else {
-                minecraft.setScreen(this);
+                minecraft.gui.setScreen(this);
             }
         }, Component.translatable("damomo_auto_reply.delete"), Component.translatable("damomo_auto_reply.confirm_delete", displayName),
                 Component.translatable("damomo_auto_reply.delete"), CommonComponents.GUI_CANCEL));
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
-        graphics.fill(panelX, 27, panelX + panelWidth, Math.max(28, height - 37), 0xB8141B22);
-        super.render(graphics, mouseX, mouseY, delta);
-        graphics.drawCenteredString(font, title.copy().withStyle(ChatFormatting.BOLD), width / 2, 14, 0xFFFFFFFF);
+    public void extractRenderState(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float partialTick) {
+        extractor.fill(panelX, 27, panelX + panelWidth, Math.max(28, height - 37), 0xB8141B22);
+        super.extractRenderState(extractor, mouseX, mouseY, partialTick);
+        extractor.centeredText(font, title.copy().withStyle(ChatFormatting.BOLD), width / 2, 14, 0xFFFFFFFF);
 
         int labelX = panelX + 14;
-        graphics.drawString(font, Component.translatable("damomo_auto_reply.edit.name"), labelX, 30, 0xFFE7ECEF, false);
-        graphics.drawString(font, Component.translatable(working.matchMode == RuleMatchMode.BUTTON_COMMAND
+        extractor.text(font, Component.translatable("damomo_auto_reply.edit.name"), labelX, 30, 0xFFE7ECEF, false);
+        extractor.text(font, Component.translatable(working.matchMode == RuleMatchMode.BUTTON_COMMAND
                 ? "damomo_auto_reply.edit.regex.button" : "damomo_auto_reply.edit.regex"), labelX, 63, 0xFFE7ECEF, false);
-        graphics.drawString(font, Component.translatable("damomo_auto_reply.edit.replies"), labelX, 96, 0xFFE7ECEF, false);
+        extractor.text(font, Component.translatable("damomo_auto_reply.edit.replies"), labelX, 96, 0xFFE7ECEF, false);
         String help = Component.translatable(working.matchMode == RuleMatchMode.BUTTON_COMMAND
                 ? "damomo_auto_reply.edit.help.button" : "damomo_auto_reply.edit.help").getString();
-        graphics.drawString(font, trim(help, panelWidth - 28), labelX, 130, MUTED, false);
-        graphics.drawString(font, Component.translatable("damomo_auto_reply.edit.test"), labelX, 168, 0xFFE7ECEF, false);
+        extractor.text(font, trim(help, panelWidth - 28), labelX, 130, MUTED, false);
+        extractor.text(font, Component.translatable("damomo_auto_reply.edit.test"), labelX, 168, 0xFFE7ECEF, false);
 
         int resultY = Math.min(203, height - 39);
-        graphics.drawString(font, trim(testResult.getString(), panelWidth - 28), labelX, resultY, testResultColor, false);
+        extractor.text(font, trim(testResult.getString(), panelWidth - 28), labelX, resultY, testResultColor, false);
     }
 
     private String trim(String value, int maxWidth) {
@@ -235,6 +235,6 @@ public final class RuleEditScreen extends Screen {
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 }

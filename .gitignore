@@ -6,3 +6,4 @@ out/
 .idea/
 config/momo-chat.json
 config/damomo-auto-reply.json
+run/
