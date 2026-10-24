@@ -2,7 +2,7 @@ package dev.damomo1.autoreply.ui;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.screens.Screen;
@@ -44,7 +44,7 @@ final class ReplyMessagesScreen extends Screen {
         addRenderableWidget(Button.builder(Component.translatable("damomo_auto_reply.cancel"), button -> onClose())
                 .bounds(width / 2 - 154, buttonY, 98, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("damomo_auto_reply.replies.add"), button ->
-                        minecraft.setScreen(new ReplyMessageEditScreen(this, -1, "")))
+                        minecraft.gui.setScreen(new ReplyMessageEditScreen(this, -1, "")))
                 .bounds(width / 2 - 49, buttonY, 98, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("damomo_auto_reply.save"), button -> saveAndClose())
                 .bounds(width / 2 + 56, buttonY, 98, 20).build());
@@ -61,19 +61,19 @@ final class ReplyMessagesScreen extends Screen {
     private void saveAndClose() {
         target.clear();
         target.addAll(messages);
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
-        super.render(graphics, mouseX, mouseY, delta);
-        graphics.drawCenteredString(font, title.copy().withStyle(ChatFormatting.BOLD), width / 2, 13, 0xFFFFFFFF);
-        graphics.drawCenteredString(font, Component.translatable("damomo_auto_reply.replies.subtitle"),
+    public void extractRenderState(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(extractor, mouseX, mouseY, partialTick);
+        extractor.centeredText(font, title.copy().withStyle(ChatFormatting.BOLD), width / 2, 13, 0xFFFFFFFF);
+        extractor.centeredText(font, Component.translatable("damomo_auto_reply.replies.subtitle"),
                 width / 2, 29, MUTED);
     }
 
@@ -96,19 +96,19 @@ final class ReplyMessagesScreen extends Screen {
         }
 
         @Override
-        protected void renderListBackground(GuiGraphics graphics) {
+        protected void extractListBackground(GuiGraphicsExtractor extractor) {
         }
 
         @Override
-        protected void renderListSeparators(GuiGraphics graphics) {
+        protected void extractListSeparators(GuiGraphicsExtractor extractor) {
         }
 
         @Override
-        public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
-            super.renderWidget(graphics, mouseX, mouseY, delta);
+        public void extractWidgetRenderState(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float partialTick) {
+            super.extractWidgetRenderState(extractor, mouseX, mouseY, partialTick);
             if (children().isEmpty()) {
                 int centerY = getY() + getHeight() / 2 - 5;
-                graphics.drawCenteredString(font, Component.translatable("damomo_auto_reply.replies.empty"),
+                extractor.centeredText(font, Component.translatable("damomo_auto_reply.replies.empty"),
                         width / 2, centerY, MUTED);
             }
         }
@@ -122,21 +122,21 @@ final class ReplyMessagesScreen extends Screen {
         }
 
         @Override
-        public void renderContent(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float delta) {
+        public void extractContent(GuiGraphicsExtractor extractor, int mouseX, int mouseY, boolean hovered, float partialTick) {
             int x = getX() + 3;
             int y = getY() + 3;
             int w = getWidth() - 6;
             int h = getHeight() - 6;
-            graphics.fill(x, y, x + w, y + h, hovered ? CARD_HOVER : CARD);
-            graphics.drawString(font, Component.translatable("damomo_auto_reply.replies.item", index + 1),
+            extractor.fill(x, y, x + w, y + h, hovered ? CARD_HOVER : CARD);
+            extractor.text(font, Component.translatable("damomo_auto_reply.replies.item", index + 1),
                     x + 12, y + 8, 0xFF71D6B2, false);
-            graphics.drawString(font, trim(messages.get(index), w - 86), x + 12, y + 27, 0xFFE4E9EB, false);
+            extractor.text(font, trim(messages.get(index), w - 86), x + 12, y + 27, 0xFFE4E9EB, false);
 
             int deleteX = x + w - 56;
             boolean deleteHovered = mouseX >= deleteX && mouseX < deleteX + 48
                     && mouseY >= y + 14 && mouseY < y + 34;
-            graphics.fill(deleteX, y + 14, deleteX + 48, y + 34, deleteHovered ? 0xCC8B3E46 : 0xAA5E2D32);
-            graphics.drawCenteredString(font, Component.translatable("damomo_auto_reply.delete"),
+            extractor.fill(deleteX, y + 14, deleteX + 48, y + 34, deleteHovered ? 0xCC8B3E46 : 0xAA5E2D32);
+            extractor.centeredText(font, Component.translatable("damomo_auto_reply.delete"),
                     deleteX + 24, y + 20, 0xFFF3F5F6);
         }
 
@@ -154,7 +154,7 @@ final class ReplyMessagesScreen extends Screen {
                 messages.remove(index);
                 messageList.reload();
             } else {
-                minecraft.setScreen(new ReplyMessageEditScreen(ReplyMessagesScreen.this, index, messages.get(index)));
+                minecraft.gui.setScreen(new ReplyMessageEditScreen(ReplyMessagesScreen.this, index, messages.get(index)));
             }
             return true;
         }

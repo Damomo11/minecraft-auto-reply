@@ -5,7 +5,7 @@ import dev.damomo1.autoreply.config.ReplyRule;
 import dev.damomo1.autoreply.config.RuleMatchMode;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.screens.ConfirmScreen;
@@ -49,7 +49,7 @@ public final class RulesScreen extends Screen {
 
         int buttonY = height - 28;
         addRenderableWidget(Button.builder(Component.translatable("damomo_auto_reply.add"), button ->
-                minecraft.setScreen(new RuleEditScreen(this, new ReplyRule(), true)))
+                minecraft.gui.setScreen(new RuleEditScreen(this, new ReplyRule(), true)))
                 .bounds(width / 2 - 103, buttonY, 100, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
                 .bounds(width / 2 + 3, buttonY, 100, 20).build());
@@ -62,13 +62,13 @@ public final class RulesScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
-        super.render(graphics, mouseX, mouseY, delta);
-        graphics.drawCenteredString(font, title.copy().withStyle(ChatFormatting.BOLD), width / 2, 13, 0xFFFFFFFF);
-        graphics.drawCenteredString(font, Component.translatable("damomo_auto_reply.subtitle"), width / 2, 29, MUTED);
+    public void extractRenderState(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(extractor, mouseX, mouseY, partialTick);
+        extractor.centeredText(font, title.copy().withStyle(ChatFormatting.BOLD), width / 2, 13, 0xFFFFFFFF);
+        extractor.centeredText(font, Component.translatable("damomo_auto_reply.subtitle"), width / 2, 29, MUTED);
 
         long enabled = ConfigManager.get().rules.stream().filter(rule -> rule.enabled).count();
-        graphics.drawString(font, Component.translatable("damomo_auto_reply.status.rules", ConfigManager.get().rules.size(), enabled),
+        extractor.text(font, Component.translatable("damomo_auto_reply.status.rules", ConfigManager.get().rules.size(), enabled),
                 (width - font.width(Component.translatable("damomo_auto_reply.status.rules", ConfigManager.get().rules.size(), enabled))) / 2,
                 73, MUTED, false);
     }
@@ -76,7 +76,7 @@ public final class RulesScreen extends Screen {
     @Override
     public void onClose() {
         ConfigManager.save();
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 
     void refreshRules() {
@@ -87,13 +87,13 @@ public final class RulesScreen extends Screen {
 
     private void confirmDelete(ReplyRule rule) {
         String displayName = rule.name.isBlank() ? rule.regex : rule.name;
-        minecraft.setScreen(new ConfirmScreen(confirmed -> {
+        minecraft.gui.setScreen(new ConfirmScreen(confirmed -> {
             if (confirmed) {
                 ConfigManager.get().rules.removeIf(candidate -> candidate.id.equals(rule.id));
                 ConfigManager.save();
                 refreshRules();
             }
-            minecraft.setScreen(this);
+            minecraft.gui.setScreen(this);
         }, Component.translatable("damomo_auto_reply.delete"), Component.translatable("damomo_auto_reply.confirm_delete", displayName),
                 Component.translatable("damomo_auto_reply.delete"), CommonComponents.GUI_CANCEL));
     }
@@ -117,21 +117,21 @@ public final class RulesScreen extends Screen {
         }
 
         @Override
-        protected void renderListBackground(GuiGraphics graphics) {
+        protected void extractListBackground(GuiGraphicsExtractor extractor) {
         }
 
         @Override
-        protected void renderListSeparators(GuiGraphics graphics) {
+        protected void extractListSeparators(GuiGraphicsExtractor extractor) {
         }
 
         @Override
-        public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
-            super.renderWidget(graphics, mouseX, mouseY, delta);
+        public void extractWidgetRenderState(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float partialTick) {
+            super.extractWidgetRenderState(extractor, mouseX, mouseY, partialTick);
             if (children().isEmpty()) {
                 int centerY = getY() + getHeight() / 2 - 12;
-                graphics.drawCenteredString(font, Component.translatable("damomo_auto_reply.empty.title").withStyle(ChatFormatting.BOLD),
+                extractor.centeredText(font, Component.translatable("damomo_auto_reply.empty.title").withStyle(ChatFormatting.BOLD),
                         width / 2, centerY, 0xFFE6ECEF);
-                graphics.drawCenteredString(font, Component.translatable("damomo_auto_reply.empty.description"),
+                extractor.centeredText(font, Component.translatable("damomo_auto_reply.empty.description"),
                         width / 2, centerY + 17, MUTED);
             }
         }
@@ -145,13 +145,13 @@ public final class RulesScreen extends Screen {
         }
 
         @Override
-        public void renderContent(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float delta) {
+        public void extractContent(GuiGraphicsExtractor extractor, int mouseX, int mouseY, boolean hovered, float partialTick) {
             int x = getX() + 3;
             int y = getY() + 3;
             int w = getWidth() - 6;
             int h = getHeight() - 6;
-            graphics.fill(x, y, x + w, y + h, hovered ? CARD_HOVER : CARD);
-            graphics.fill(x, y, x + 3, y + h, rule.enabled ? ACCENT : 0xFF59636B);
+            extractor.fill(x, y, x + w, y + h, hovered ? CARD_HOVER : CARD);
+            extractor.fill(x, y, x + 3, y + h, rule.enabled ? ACCENT : 0xFF59636B);
 
             int textX = x + 13;
             int rightControls = 112;
@@ -159,34 +159,34 @@ public final class RulesScreen extends Screen {
             String displayName = rule.name.isBlank()
                     ? Component.translatable("damomo_auto_reply.rule.untitled").getString()
                     : rule.name;
-            graphics.drawString(font, trim(displayName, textWidth), textX, y + 9,
+            extractor.text(font, trim(displayName, textWidth), textX, y + 9,
                     rule.enabled ? 0xFFF2F6F7 : 0xFFB0B8BD, false);
             String mode = Component.translatable(rule.matchMode == RuleMatchMode.BUTTON_COMMAND
                     ? "damomo_auto_reply.rule.mode.button" : "damomo_auto_reply.rule.mode.message").getString();
             String regexSummary = "[" + mode + "] " + (rule.regex.isBlank() ? "—" : rule.regex);
-            graphics.drawString(font, trim(regexSummary, textWidth), textX, y + 27,
+            extractor.text(font, trim(regexSummary, textWidth), textX, y + 27,
                     0xFF91C9BA, false);
             var nonEmptyReplies = rule.replies.stream().filter(reply -> reply != null && !reply.isBlank()).toList();
             String replyPreview = nonEmptyReplies.isEmpty() ? "—" : nonEmptyReplies.getFirst();
             String replyCount = nonEmptyReplies.size() > 1 ? " (×" + nonEmptyReplies.size() + ")" : "";
             String arrowReply = "→ " + replyPreview + replyCount;
-            graphics.drawString(font, trim(arrowReply, textWidth), textX, y + 44, MUTED, false);
+            extractor.text(font, trim(arrowReply, textWidth), textX, y + 44, MUTED, false);
 
             int deleteX = x + w - 118;
             int toggleX = x + w - 70;
-            drawSmallButton(graphics, deleteX, y + 21, 42, 20, Component.translatable("damomo_auto_reply.delete"),
+            drawSmallButton(extractor, deleteX, y + 21, 42, 20, Component.translatable("damomo_auto_reply.delete"),
                     mouseX, mouseY, 0xAA5E2D32, 0xCC8B3E46);
-            drawSmallButton(graphics, toggleX, y + 21, 62, 20,
+            drawSmallButton(extractor, toggleX, y + 21, 62, 20,
                     Component.translatable(rule.enabled ? "damomo_auto_reply.rule.action.disable" : "damomo_auto_reply.rule.action.enable"),
                     mouseX, mouseY, rule.enabled ? 0xAA71343A : 0xAA285D50,
                     rule.enabled ? 0xCC9B454D : 0xCC397C6C);
         }
 
-        private void drawSmallButton(GuiGraphics graphics, int x, int y, int width, int height, Component text,
+        private void drawSmallButton(GuiGraphicsExtractor extractor, int x, int y, int width, int height, Component text,
                                      int mouseX, int mouseY, int color, int hoverColor) {
             boolean hovered = mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
-            graphics.fill(x, y, x + width, y + height, hovered ? hoverColor : color);
-            graphics.drawCenteredString(font, text, x + width / 2, y + 6, 0xFFF3F5F6);
+            extractor.fill(x, y, x + width, y + height, hovered ? hoverColor : color);
+            extractor.centeredText(font, text, x + width / 2, y + 6, 0xFFF3F5F6);
         }
 
         @Override
@@ -207,7 +207,7 @@ public final class RulesScreen extends Screen {
             } else if (onButtonRow && event.x() >= deleteX && event.x() < deleteX + 42) {
                 confirmDelete(rule);
             } else {
-                minecraft.setScreen(new RuleEditScreen(RulesScreen.this, rule, false));
+                minecraft.gui.setScreen(new RuleEditScreen(RulesScreen.this, rule, false));
             }
             return true;
         }
